@@ -40,7 +40,6 @@ void laps_draw_circle(uint32_t *pixels, uint16_t cx, uint16_t cy, uint16_t r, si
     }
 }
 
-// TODO: finish draw line 
 void laps_draw_line(uint32_t *pixels, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, size_t width, size_t height, uint32_t color) {
     int dx = x2 - x1;
     int dy = y2 - y1;
@@ -49,12 +48,15 @@ void laps_draw_line(uint32_t *pixels, uint16_t x1, uint16_t y1, uint16_t x2, uin
         uint16_t c = y1 - dy*x1/dx;
 
         if (x2 < x1) SWAP(x1, x2);
-        for (uint16_t x = x1; x < x2; ++x) {
+        for (uint16_t x = x1; x <= x2; ++x) {
             if (0 <= x && x < width) {
-                uint16_t y = dy*x/dx + c;
-                if (0 <= y && y < height) {
-                    pixels[y*width + x] = color;
-                    printf("x = %d, y = %d", x, y);
+                uint16_t sy1 = dy*x/dx + c;
+                uint16_t sy2 = dy*(x + 1)/dx + c;
+                for (uint16_t y = sy1; y <= sy2; ++y) {
+                    if (0 <= y && y < height) {
+                        pixels[y*width + x] = color;
+                        printf("x = %d, y = %d", x, y);
+                    }
                 }
             }
         }
