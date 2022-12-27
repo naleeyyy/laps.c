@@ -17,6 +17,8 @@
 ### TODO: 
     1. laps_draw_rectangle()
     2. laps_draw_circle()
-    3. laps_fill_triangle()
-    4. Port To WASM
-    5. 3D
+    3. Port To WASM
+    4. 3D
+
+### Currently Working On:
+    1. laps_fill_triangle()

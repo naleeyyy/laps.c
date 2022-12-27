@@ -1,3 +1,6 @@
+
+# Try to include these in essay
+
 - ray tracing
 - splines
 - file formats

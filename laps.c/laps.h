@@ -50,12 +50,14 @@ void sort_triangle_points_by_y(uint16_t *x1, uint16_t *y1, uint16_t *x2, uint16_
 
 // end utils
 
+// Fills the canvas with one color
 void laps_fill(uint32_t *pixels, size_t width, size_t height, uint32_t color) {
     for (size_t i = 0; i < width*height; ++i) {
         pixels[i] = color;
     }
 }
 
+// Fills rectangle with one color
 void laps_fill_rectange(uint32_t *pixels, uint16_t width, uint16_t height,
                         uint16_t cx, uint16_t cy, 
                         uint16_t cw, uint16_t ch, 
@@ -68,6 +70,7 @@ void laps_fill_rectange(uint32_t *pixels, uint16_t width, uint16_t height,
     }
 }
 
+// Fills circle with one color
 void laps_fill_circle(uint32_t *pixels, size_t width, size_t height,
                       uint16_t cx, uint16_t cy, uint16_t r, 
                   uint32_t color) 
@@ -87,6 +90,7 @@ void laps_fill_circle(uint32_t *pixels, size_t width, size_t height,
     }
 }
 
+// Draws line from two points
 void laps_draw_line(uint32_t *pixels, size_t width, size_t height,
                     uint16_t x1, uint16_t y1, 
                     uint16_t x2, uint16_t y2, 
@@ -125,6 +129,7 @@ void laps_draw_line(uint32_t *pixels, size_t width, size_t height,
     
 }
 
+// Draws triangle from three points using the laps_draw_line() function
 void laps_draw_triangle(uint32_t *pixels, size_t width, size_t height, 
                         uint16_t x1, uint16_t y1, 
                         uint16_t x2, uint16_t y2, 
@@ -136,6 +141,8 @@ void laps_draw_triangle(uint32_t *pixels, size_t width, size_t height,
     laps_draw_line(pixels, width, height, x2, y2, x3, y3, color);
 }
 
+// Fills triangle with one color
+// TODO: Finish doing this
 void laps_fill_triangle(uint32_t *pixels, size_t width, size_t height,
                         uint16_t x1, uint16_t y1, 
                         uint16_t x2, uint16_t y2, 
@@ -145,6 +152,5 @@ void laps_fill_triangle(uint32_t *pixels, size_t width, size_t height,
     sort_triangle_points_by_y(&x1, &y1, &x2, &y2, &x3, &y3);
     return;
 }
-
 
 #endif // LAPS_H
