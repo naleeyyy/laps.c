@@ -1,0 +1,9 @@
+laps.c/*.ppm
+laps.c/*.exe
+
+rayTracing/*.jpg
+rayTracing/*.png
+rayTracing/*.ppm
+rayTracing/*.exe
+
+# if port to linux add gitignore for output file after compile

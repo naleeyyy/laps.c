@@ -1,7 +1,0 @@
-ray tracing
-splines
-file formats
-primitive shapes
-linear algebra used
-
-draw functions
