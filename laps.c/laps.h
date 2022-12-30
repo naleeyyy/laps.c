@@ -133,7 +133,6 @@ void laps_draw_line(uint32_t *pixels, size_t width, size_t height,
             }
         }
     }
-    
 }
 
 // Draws triangle from three points using the laps_draw_line() function
@@ -150,6 +149,45 @@ void laps_draw_triangle(uint32_t *pixels, size_t width, size_t height,
 
 // Fills triangle with one color
 // TODO: Finish doing this
+void laps_fill_flat_bottom_triangle(uint32_t *pixels, size_t width, size_t height,
+                        uint16_t x1, uint16_t y1, 
+                        uint16_t x2, uint16_t y2, 
+                        uint16_t x3, uint16_t y3, 
+                    uint32_t color) 
+{
+    uint16_t dx12 = x2 - x1;
+    uint16_t dy12 = y2 - y1;
+    uint16_t dx13 = x3 - x1;
+    uint16_t dy13 = y3 - y1;
+
+    uint16_t c12 = x1, c13 = x1;
+
+    for (uint16_t y = y1; y < y2; ++y) {
+        laps_draw_line(pixels, width, height, c12, y, c13, y, color);
+        c12 += dx12/dy12;
+        c13 += dx13/dy13;
+    }
+}
+void laps_fill_flat_top_triangle(uint32_t *pixels, size_t width, size_t height,
+                        uint16_t x1, uint16_t y1, 
+                        uint16_t x2, uint16_t y2, 
+                        uint16_t x3, uint16_t y3, 
+                    uint32_t color)
+{
+    uint16_t dx13 = x3 - x1;
+    uint16_t dy13 = y3 - y1;
+    uint16_t dx23 = x3 - x2;
+    uint16_t dy23 = y3 - y2;
+
+    uint16_t c12 = x3, c13 = x3;
+
+    for (uint16_t y = y3; y > y1; --y) {
+        laps_draw_line(pixels, width, height, c12, y, c13, y, color);
+        c12 -= dx13/dy13;
+        c13 -= dx23/dy23;
+    }
+}
+
 void laps_fill_triangle(uint32_t *pixels, size_t width, size_t height,
                         uint16_t x1, uint16_t y1, 
                         uint16_t x2, uint16_t y2, 
@@ -157,6 +195,16 @@ void laps_fill_triangle(uint32_t *pixels, size_t width, size_t height,
                     uint32_t color) 
 {
     sort_triangle_points_by_y(&x1, &y1, &x2, &y2, &x3, &y3);
+    if (y2 == y3) {
+        laps_fill_flat_bottom_triangle(pixels, width, height, x1, y1, x2, y2, x3, y3, color);
+    }
+    else if (y1 == y2) {
+        laps_fill_flat_top_triangle(pixels, width, height, x1, y1, x2, y2, x3, y3, color);
+    }
+    else {
+        laps_fill_flat_bottom_triangle(pixels, width, height, x1, y1, x2, y2, x3, y2, color);
+        laps_fill_flat_top_triangle(pixels, width, height, x1, y2, x2, y2, x3, y3, color);
+    }
     return;
 }
 

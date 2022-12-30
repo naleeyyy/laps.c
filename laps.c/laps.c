@@ -20,9 +20,12 @@ int main(void) {
 
     // available functions in readme file
     laps_fill(pixels, WIDTH, HEIGHT, BACKGROUND_COLOR);
-    laps_fill_rectange(pixels, WIDTH, HEIGHT, WIDTH/2, HEIGHT/2, 100, 100, PURPLE_COLOR);
-    laps_draw_triangle(pixels, WIDTH, HEIGHT, 0, 0, 20, 100, 200, 200, GREEN_COLOR);
-    laps_fill_circle(pixels, WIDTH, HEIGHT, WIDTH/2, HEIGHT/2, 50, BLUE_COLOR);
+    // laps_fill_rectange(pixels, WIDTH, HEIGHT, WIDTH/2, HEIGHT/2, 100, 100, PURPLE_COLOR);
+    // laps_draw_triangle(pixels, WIDTH, HEIGHT, 0, 0, 20, 100, 200, 200, GREEN_COLOR);
+    // laps_fill_circle(pixels, WIDTH, HEIGHT, WIDTH/2, HEIGHT/2, 50, BLUE_COLOR);
+
+    // laps_fill_triangle(pixels, WIDTH, HEIGHT, 50, 50, 400, 900, 700, 300, FOREGROUND_COLOR);
+    laps_fill_triangle(pixels, WIDTH, HEIGHT, 0, 0, 300, 0, 500, 500, FOREGROUND_COLOR);
     laps_save_to_ppm(pixels, WIDTH, HEIGHT, "test.ppm");
 
     return 0;
