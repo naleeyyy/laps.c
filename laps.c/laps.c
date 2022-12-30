@@ -14,7 +14,7 @@
 #define BACKGROUND_COLOR WHITE_COLOR
 #define FOREGROUND_COLOR PURPLE_COLOR
 
-int main(int argc, char* argv[]) {
+int main(void) {
     
     uint32_t pixels[WIDTH*HEIGHT];
 
