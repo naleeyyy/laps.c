@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.4.33205.214
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Laps3D", "Laps3D.vcxproj", "{20FF72AE-0595-422A-8ACD-9679D4DEA504}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{20FF72AE-0595-422A-8ACD-9679D4DEA504}.Debug|x64.ActiveCfg = Debug|x64
+		{20FF72AE-0595-422A-8ACD-9679D4DEA504}.Debug|x64.Build.0 = Debug|x64
+		{20FF72AE-0595-422A-8ACD-9679D4DEA504}.Debug|x86.ActiveCfg = Debug|Win32
+		{20FF72AE-0595-422A-8ACD-9679D4DEA504}.Debug|x86.Build.0 = Debug|Win32
+		{20FF72AE-0595-422A-8ACD-9679D4DEA504}.Release|x64.ActiveCfg = Release|x64
+		{20FF72AE-0595-422A-8ACD-9679D4DEA504}.Release|x64.Build.0 = Release|x64
+		{20FF72AE-0595-422A-8ACD-9679D4DEA504}.Release|x86.ActiveCfg = Release|Win32
+		{20FF72AE-0595-422A-8ACD-9679D4DEA504}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {5C0632A4-164B-41C5-A86B-0D51792D21D6}
+	EndGlobalSection
+EndGlobal
