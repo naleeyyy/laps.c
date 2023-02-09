@@ -23,8 +23,9 @@ int main(void)
     laps_fill_triangle(c, WIDTH / 2, 0, 0, HEIGHT, WIDTH, HEIGHT / 4, 0x55FF0000);
     laps_fill_triangle(c, WIDTH / 2, 0, 0, HEIGHT, WIDTH, HEIGHT / 2, 0x55AA00FF);
     laps_fill_triangle(c, WIDTH / 2, 0, 0, HEIGHT, WIDTH, HEIGHT * 3 / 4, 0x550000FF);
+    laps_fill_rectange(c, 0, 0, WIDTH / 2, HEIGHT / 2, 0x99FF0000);
     laps_line(c, 0, 0, WIDTH, HEIGHT, GREEN_COLOR);
-    laps_save_to_ppm(pixels, WIDTH, HEIGHT, "test.ppm");
+    laps_save_to_ppm(c, "test.ppm");
 
     return 0;
 }

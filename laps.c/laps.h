@@ -29,28 +29,6 @@ typedef int Errno;
 #define LAPS_ABS(T, x) (LAPS_SIGN(T, x) * (x))
 #define LAPS_PIXEL(c, x, y) (c).pixels[(y) * (c).stride + (x)]
 
-int laps_save_to_ppm(uint32_t *pixels, size_t width, size_t height, const char *filePath)
-{
-    FILE *fp = fopen(filePath, "wb"); // wb - write binary
-
-    // assert(fp != NULL && "File Could Not Open");
-
-    // assert(fprintf(fp, "P6\n%d %d 255\n", width, height) > 0 && "Could not add file header!");
-    fprintf(fp, "P6\n%d %d 255\n", width, height);
-
-    for (size_t i = 0; i < width * height; ++i)
-    {
-        uint32_t pixel = pixels[i];
-        uint8_t bytes[3] = {
-            (pixel >> (8 * 0)) & 0xFF,
-            (pixel >> (8 * 1)) & 0xFF,
-            (pixel >> (8 * 2)) & 0xFF};
-        fwrite(bytes, sizeof(bytes), 1, fp);
-    };
-    printf("Saved File!");
-    return 0;
-}
-
 typedef struct
 {
     uint32_t *pixels;
@@ -82,6 +60,28 @@ typedef struct
     int ox1, ox2;
     int oy1, oy2;
 } Laps_Normalized_Rect;
+
+int laps_save_to_ppm(Laps_Canvas c, const char *filePath)
+{
+    FILE *fp = fopen(filePath, "wb"); // wb - write binary
+
+    // assert(fp != NULL && "File Could Not Open");
+
+    // assert(fprintf(fp, "P6\n%d %d 255\n", width, height) > 0 && "Could not add file header!");
+    fprintf(fp, "P6\n%d %d 255\n", c.width, c.height);
+
+    for (size_t i = 0; i < c.width * c.height; ++i)
+    {
+        uint32_t pixel = c.pixels[i];
+        uint8_t bytes[3] = {
+            (pixel >> (8 * 0)) & 0xFF,
+            (pixel >> (8 * 1)) & 0xFF,
+            (pixel >> (8 * 2)) & 0xFF};
+        fwrite(bytes, sizeof(bytes), 1, fp);
+    };
+    printf("Saved File!");
+    return 0;
+}
 
 bool laps_normalize_rect(int x, int y, int w, int h,
                          size_t canvas_width, size_t canvas_height,
@@ -383,6 +383,63 @@ void laps_fill_circle(uint32_t *pixels, size_t width, size_t height,
     }
 }
 
+void barycentric(int x1, int y1, int x2, int y2, int x3, int y3,
+                 int xp, int yp,
+                 int *u1, int *u2, int *det)
+{
+    *det = ((x1 - x3) * (y2 - y3) - (x2 - x3) * (y1 - y3));
+    *u1 = ((y2 - y3) * (xp - x3) + (x3 - x2) * (yp - y3));
+    *u2 = ((y3 - y1) * (xp - x3) + (x1 - x3) * (yp - y3));
+    // u3 = det - u1 - u2
+}
+
+bool laps_normalize_triangle(size_t width, size_t height, int x1, int y1, int x2, int y2, int x3, int y3, int *lx, int *hx, int *ly, int *hy)
+{
+    *lx = x1;
+    *hx = x1;
+    if (*lx > x2)
+        *lx = x2;
+    if (*lx > x3)
+        *lx = x3;
+    if (*hx < x2)
+        *hx = x2;
+    if (*hx < x3)
+        *hx = x3;
+    if (*lx < 0)
+        *lx = 0;
+    if ((size_t)*lx >= width)
+        return false;
+    ;
+    if (*hx < 0)
+        return false;
+    ;
+    if ((size_t)*hx >= width)
+        *hx = width - 1;
+
+    *ly = y1;
+    *hy = y1;
+    if (*ly > y2)
+        *ly = y2;
+    if (*ly > y3)
+        *ly = y3;
+    if (*hy < y2)
+        *hy = y2;
+    if (*hy < y3)
+        *hy = y3;
+    if (*ly < 0)
+        *ly = 0;
+    if ((size_t)*ly >= height)
+        return false;
+    ;
+    if (*hy < 0)
+        return false;
+    ;
+    if ((size_t)*hy >= height)
+        *hy = height - 1;
+
+    return true;
+}
+
 // Fills triangle with one color
 void laps_fill_triangle(Laps_Canvas c,
                         uint16_t x1, uint16_t y1,
@@ -390,49 +447,22 @@ void laps_fill_triangle(Laps_Canvas c,
                         uint16_t x3, uint16_t y3,
                         uint32_t color)
 {
-    sort_triangle_points_by_y(&x1, &y1, &x2, &y2, &x3, &y3);
-
-    int dx12 = x2 - x1;
-    int dy12 = y2 - y1;
-    int dx13 = x3 - x1;
-    int dy13 = y3 - y1;
-
-    for (int y = y1; y <= y2; ++y)
+    int lx, hx, ly, hy;
+    if (laps_normalize_triangle(c.width, c.height, x1, y1, x2, y2, x3, y3, &lx, &hx, &ly, &hy))
     {
-        if (0 <= y && (size_t)y < c.height)
+        for (int y = ly; y <= hy; ++y)
         {
-            int s1 = dy12 != 0 ? (y - y1) * dx12 / dy12 + x1 : x1;
-            int s2 = dy13 != 0 ? (y - y1) * dx13 / dy13 + x1 : x1;
-            if (s1 > s2)
-                LAPS_SWAP(int, s1, s2);
-            for (int x = s1; x <= s2; ++x)
+            for (int x = lx; x <= hx; ++x)
             {
-                if (0 <= x && (size_t)x < c.width)
+                int u1, u2, det;
+                barycentric(x1, y1, x2, y2, x3, y3, x, y, &u1, &u2, &det);
+                int u3 = det - u1 - u2;
+                if (
+                    (LAPS_SIGN(int, u1) == LAPS_SIGN(int, det) || u1 == 0) &&
+                    (LAPS_SIGN(int, u2) == LAPS_SIGN(int, det) || u2 == 0) &&
+                    (LAPS_SIGN(int, u3) == LAPS_SIGN(int, det) || u3 == 0))
                 {
-                    c.pixels[y * c.width + x] = laps_mix_color(c.pixels[y * c.width + x], color);
-                }
-            }
-        }
-    }
-
-    int dx32 = x2 - x3;
-    int dy32 = y2 - y3;
-    int dx31 = x1 - x3;
-    int dy31 = y1 - y3;
-
-    for (int y = y2 + 1; y < y3; ++y)
-    {
-        if (0 < y && (size_t)y < c.height)
-        {
-            int s1 = dy32 != 0 ? (y - y3) * dx32 / dy32 + x3 : x3;
-            int s2 = dy31 != 0 ? (y - y3) * dx31 / dy31 + x3 : x3;
-            if (s1 > s2)
-                LAPS_SWAP(int, s1, s2);
-            for (int x = s1; x < s2; ++x)
-            {
-                if (0 < x && (size_t)x < c.width)
-                {
-                    c.pixels[y * c.width + x] = laps_mix_color(c.pixels[y * c.width + x], color);
+                    laps_blend_color(&LAPS_PIXEL(c, x, y), color);
                 }
             }
         }
