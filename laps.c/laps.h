@@ -5,7 +5,7 @@
 #include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <math.h>
+#include <stdbool.h>
 
 // utils
 #define return_defer(val) \
@@ -24,6 +24,10 @@ typedef int Errno;
         a = b;             \
         b = temp;          \
     } while (0)
+
+#define LAPS_SIGN(T, x) ((T)((x) > 0) - (T)((x) < 0))
+#define LAPS_ABS(T, x) (LAPS_SIGN(T, x) * (x))
+#define LAPS_PIXEL(c, x, y) (c).pixels[(y) * (c).stride + (x)]
 
 int laps_save_to_ppm(uint32_t *pixels, size_t width, size_t height, const char *filePath)
 {
@@ -45,6 +49,179 @@ int laps_save_to_ppm(uint32_t *pixels, size_t width, size_t height, const char *
     };
     printf("Saved File!");
     return 0;
+}
+
+typedef struct
+{
+    uint32_t *pixels;
+    size_t width;
+    size_t height;
+    size_t stride;
+} Laps_Canvas;
+
+#define LAPS_CANVAS_NULL ((Laps_Canvas){0})
+
+Laps_Canvas laps_canvas(uint32_t *pixels, size_t width, size_t height)
+{
+    Laps_Canvas c = {
+        .pixels = pixels,
+        .width = width,
+        .height = height,
+        .stride = width,
+    };
+    return c;
+}
+
+typedef struct
+{
+    // Safe ranges to iterate over.
+    int x1, x2;
+    int y1, y2;
+
+    // Original uncut ranges some parts of which may be outside of the canvas boundaries.
+    int ox1, ox2;
+    int oy1, oy2;
+} Laps_Normalized_Rect;
+
+bool laps_normalize_rect(int x, int y, int w, int h,
+                         size_t canvas_width, size_t canvas_height,
+                         Laps_Normalized_Rect *nr)
+{
+    // No need to render empty rectangle
+    if (w == 0)
+        return false;
+    if (h == 0)
+        return false;
+
+    nr->ox1 = x;
+    nr->oy1 = y;
+
+    // Convert the rectangle to 2-points representation
+    nr->ox2 = nr->ox1 + LAPS_SIGN(int, w) * (LAPS_ABS(int, w) - 1);
+    if (nr->ox1 > nr->ox2)
+        LAPS_SWAP(int, nr->ox1, nr->ox2);
+    nr->oy2 = nr->oy1 + LAPS_SIGN(int, h) * (LAPS_ABS(int, h) - 1);
+    if (nr->oy1 > nr->oy2)
+        LAPS_SWAP(int, nr->oy1, nr->oy2);
+
+    // Cull out invisible rectangle
+    if (nr->ox1 >= (int)canvas_width)
+        return false;
+    if (nr->ox2 < 0)
+        return false;
+    if (nr->oy1 >= (int)canvas_height)
+        return false;
+    if (nr->oy2 < 0)
+        return false;
+
+    nr->x1 = nr->ox1;
+    nr->y1 = nr->oy1;
+    nr->x2 = nr->ox2;
+    nr->y2 = nr->oy2;
+
+    // Clamp the rectangle to the boundaries
+    if (nr->x1 < 0)
+        nr->x1 = 0;
+    if (nr->x2 >= (int)canvas_width)
+        nr->x2 = (int)canvas_width - 1;
+    if (nr->y1 < 0)
+        nr->y1 = 0;
+    if (nr->y2 >= (int)canvas_height)
+        nr->y2 = (int)canvas_height - 1;
+
+    return true;
+}
+
+Laps_Canvas laps_subcanvas(Laps_Canvas c, int x, int y, int w, int h)
+{
+    Laps_Normalized_Rect nr = {0};
+    if (!laps_normalize_rect(x, y, w, h, c.width, c.height, &nr))
+        return LAPS_CANVAS_NULL;
+    c.pixels = &LAPS_PIXEL(c, nr.x1, nr.y1);
+    c.width = nr.x2 - nr.x1 + 1;
+    c.height = nr.y2 - nr.y1 + 1;
+    return c;
+}
+
+typedef enum
+{
+    COMP_RED,
+    COMP_GREEN,
+    COMP_BLUE,
+    COMP_ALPHA,
+    COUNT_COMPS,
+} Comp_Index;
+
+void unpack_rgba32(uint32_t c, uint8_t comp[COUNT_COMPS])
+{
+    for (size_t i = 0; i < 4; ++i)
+    {
+        comp[i] = c & 0xFF;
+        c >>= 8;
+    }
+}
+
+uint32_t pack_rgba32(uint8_t comp[COUNT_COMPS])
+{
+    uint32_t result = 0;
+    for (size_t i = 0; i < 4; ++i)
+    {
+        result |= comp[i] << (8 * i);
+    }
+    return result;
+}
+
+uint8_t laps_mix_comps(uint16_t c1, uint16_t c2, uint16_t a)
+{
+    return c1 + (c2 - c1) * a / 255;
+}
+
+uint32_t laps_mix_color(uint32_t c1, uint32_t c2)
+{
+    uint8_t comp1[COUNT_COMPS];
+    unpack_rgba32(c1, comp1);
+
+    uint8_t comp2[COUNT_COMPS];
+    unpack_rgba32(c2, comp2);
+
+    // comp1[COMP_RED] comp2[COMP_RED] comp2[COMP_ALPHA]
+    for (size_t i = 0; i < COMP_ALPHA; ++i)
+    {
+        comp1[i] = laps_mix_comps(comp1[i], comp2[i], comp2[COMP_ALPHA]);
+    }
+
+    return pack_rgba32(comp1);
+}
+
+#define LAPS_RED(color) (((color)&0x000000FF) >> (8 * 0))
+#define LAPS_GREEN(color) (((color)&0x0000FF00) >> (8 * 1))
+#define LAPS_BLUE(color) (((color)&0x00FF0000) >> (8 * 2))
+#define LAPS_ALPHA(color) (((color)&0xFF000000) >> (8 * 3))
+#define LAPS_RGBA(r, g, b, a) ((((r)&0xFF) << (8 * 0)) | (((g)&0xFF) << (8 * 1)) | (((b)&0xFF) << (8 * 2)) | (((a)&0xFF) << (8 * 3)))
+
+void laps_blend_color(uint32_t *c1, uint32_t c2)
+{
+    uint32_t r1 = LAPS_RED(*c1);
+    uint32_t g1 = LAPS_GREEN(*c1);
+    uint32_t b1 = LAPS_BLUE(*c1);
+    uint32_t a1 = LAPS_ALPHA(*c1);
+
+    uint32_t r2 = LAPS_RED(c2);
+    uint32_t g2 = LAPS_GREEN(c2);
+    uint32_t b2 = LAPS_BLUE(c2);
+    uint32_t a2 = LAPS_ALPHA(c2);
+
+    r1 = (r1 * (255 - a2) + r2 * a2) / 255;
+    if (r1 > 255)
+        r1 = 255;
+    g1 = (g1 * (255 - a2) + g2 * a2) / 255;
+    if (g1 > 255)
+        g1 = 255;
+    b1 = (b1 * (255 - a2) + b2 * a2) / 255;
+    if (b1 > 255)
+        b1 = 255;
+
+    *c1 = LAPS_RGBA(r1, g1, b1, a1);
 }
 
 void sort_triangle_points_by_y(uint16_t *x1, uint16_t *y1, uint16_t *x2, uint16_t *y2, uint16_t *x3, uint16_t *y3)
@@ -71,99 +248,111 @@ void sort_triangle_points_by_y(uint16_t *x1, uint16_t *y1, uint16_t *x2, uint16_
 // end utils
 
 // Fills the canvas with one color
-void laps_fill(uint32_t *pixels, size_t width, size_t height, uint32_t color)
+void laps_fill(Laps_Canvas c, uint32_t color)
 {
-    for (size_t i = 0; i < width * height; ++i)
+    for (size_t y = 0; y < c.height; ++y)
     {
-        pixels[i] = color;
+        for (size_t x = 0; x < c.width; ++x)
+        {
+            LAPS_PIXEL(c, x, y) = color;
+        }
     }
 }
 
 // Draws line from two points
-void laps_draw_line(uint32_t *pixels, size_t width, size_t height,
-                    uint16_t x1, uint16_t y1,
-                    uint16_t x2, uint16_t y2,
-                    uint32_t color)
+void laps_line(Laps_Canvas c, int x1, int y1, int x2, int y2, uint32_t color)
 {
     int dx = x2 - x1;
     int dy = y2 - y1;
 
-    if (dx != 0)
+    // If both of the differences are 0 there will be a division by 0 below.
+    if (dx == 0 && dy == 0)
     {
-        uint16_t c = y1 - dy * x1 / dx;
-
-        if (x2 < x1)
-            LAPS_SWAP(uint16_t, x1, x2);
-        for (uint16_t x = x1; x <= x2; ++x)
+        if (0 <= x1 && x1 < (int)c.width && 0 <= y1 && y1 < (int)c.height)
         {
-            if (x < width)
+            laps_blend_color(&LAPS_PIXEL(c, x1, y1), color);
+        }
+        return;
+    }
+
+    if (LAPS_ABS(int, dx) > LAPS_ABS(int, dy))
+    {
+        if (x1 > x2)
+        {
+            LAPS_SWAP(int, x1, x2);
+            LAPS_SWAP(int, y1, y2);
+        }
+
+        // Cull out invisible line
+        if (x1 > (int)c.width)
+            return;
+        if (x2 < 0)
+            return;
+
+        // Clamp the line to the boundaries
+        if (x1 < 0)
+            x1 = 0;
+        if (x2 >= (int)c.width)
+            x2 = (int)c.width - 1;
+
+        for (int x = x1; x <= x2; ++x)
+        {
+            int y = dy * (x - x1) / dx + y1;
+            // TODO: move boundary checks out side of the loops in LAPS_draw_line
+            if (0 <= y && y < (int)c.height)
             {
-                uint16_t sy1 = dy * x / dx + c;
-                uint16_t sy2 = dy * (x + 1) / dx + c;
-                for (uint16_t y = sy1; y <= sy2; ++y)
-                {
-                    if (y < height)
-                    {
-                        pixels[y * width + x] = color;
-                    }
-                }
+                laps_blend_color(&LAPS_PIXEL(c, x, y), color);
             }
         }
     }
     else
     {
-        uint16_t x = x1;
-        if (x < height)
+        if (y1 > y2)
         {
-            if (y1 < y2)
-                LAPS_SWAP(uint16_t, y1, y2);
-            for (uint16_t y = y1; y < y2; ++y)
+            LAPS_SWAP(int, x1, x2);
+            LAPS_SWAP(int, y1, y2);
+        }
+
+        // Cull out invisible line
+        if (y1 > (int)c.height)
+            return;
+        if (y2 < 0)
+            return;
+
+        // Clamp the line to the boundaries
+        if (y1 < 0)
+            y1 = 0;
+        if (y2 >= (int)c.height)
+            y2 = (int)c.height - 1;
+
+        for (int y = y1; y <= y2; ++y)
+        {
+            int x = dx * (y - y1) / dy + x1;
+            // TODO: move boundary checks out side of the loops in LAPS_draw_line
+            if (0 <= x && x < (int)c.width)
             {
-                if (y1 < width)
-                {
-                    pixels[y * width + x] = color;
-                }
+                laps_blend_color(&LAPS_PIXEL(c, x, y), color);
             }
         }
     }
 }
 
 // Fills rectangle with one color
-void laps_fill_rectange(uint32_t *pixels, uint16_t width, uint16_t height,
-                        uint16_t cx, uint16_t cy,
-                        uint16_t cw, uint16_t ch,
+void laps_fill_rectange(Laps_Canvas c,
+                        uint16_t x, uint16_t y,
+                        uint16_t w, uint16_t h,
                         uint32_t color)
 {
-    for (int y = cy - (cw / 2); y < cy + (cw / 2); ++y)
+    Laps_Normalized_Rect nr = {0};
+    if (!laps_normalize_rect(x, y, w, h, c.width, c.height, &nr))
+        return;
+    for (int x = nr.x1; x <= nr.x2; ++x)
     {
-        if (y < height)
+        for (int y = nr.y1; y <= nr.y2; ++y)
         {
-            for (int x = cx - (ch / 2); x < cx + (ch / 2); ++x)
-            {
-                if (x < width)
-                {
-                    pixels[y * width + x] = color;
-                }
-            }
+            laps_blend_color(&LAPS_PIXEL(c, x, y), color);
         }
     }
-}
-
-// TODO Fix Bug
-void laps_draw_rectangle(uint32_t *pixels, uint16_t width, uint16_t height,
-                         uint16_t cx, uint16_t cy,
-                         uint16_t rw, uint16_t rh,
-                         uint32_t color)
-{
-    uint16_t x1 = cx - (rw / 2), y1 = cy - (rh / 2); // tl
-    uint16_t x2 = cx + (rw / 2), y2 = cy - (rh / 2); // tr
-    uint16_t x3 = cx - (rw / 2), y3 = cy + (rh / 2); // bl
-    uint16_t x4 = cx + (rw / 2), y4 = cy + (rh / 2); // br
-
-    laps_draw_line(pixels, width, height, x1, y1, x3, y3, color);
-    laps_draw_line(pixels, width, height, x2, y2, x4, y4, color);
-    laps_draw_line(pixels, width, height, x1, y1, x2, y2, color);
-    laps_draw_line(pixels, width, height, x3, y3, x4, y4, color);
 }
 
 // Fills circle with one color
@@ -179,14 +368,14 @@ void laps_fill_circle(uint32_t *pixels, size_t width, size_t height,
             {
                 if (x < width)
                 {
-                    uint16_t dy = abs(cy - y);
-                    uint16_t dx = abs(cx - x);
+                    uint16_t dy = LAPS_ABS(uint16_t, cy - y);
+                    uint16_t dx = LAPS_ABS(uint16_t, cx - x);
 
                     uint32_t d = dx * dx + dy * dy;
 
                     if (r * r >= d)
                     {
-                        pixels[y * width + x] = color;
+                        pixels[y * width + x] = laps_mix_color(pixels[y * width + x], color);
                     }
                 }
             }
@@ -194,20 +383,8 @@ void laps_fill_circle(uint32_t *pixels, size_t width, size_t height,
     }
 }
 
-// Draws triangle from three points using the laps_draw_line() function
-void laps_draw_triangle(uint32_t *pixels, size_t width, size_t height,
-                        uint16_t x1, uint16_t y1,
-                        uint16_t x2, uint16_t y2,
-                        uint16_t x3, uint16_t y3,
-                        uint32_t color)
-{
-    laps_draw_line(pixels, width, height, x1, y1, x2, y2, color);
-    laps_draw_line(pixels, width, height, x1, y1, x3, y3, color);
-    laps_draw_line(pixels, width, height, x2, y2, x3, y3, color);
-}
-
 // Fills triangle with one color
-void laps_fill_triangle(uint32_t *pixels, size_t width, size_t height,
+void laps_fill_triangle(Laps_Canvas c,
                         uint16_t x1, uint16_t y1,
                         uint16_t x2, uint16_t y2,
                         uint16_t x3, uint16_t y3,
@@ -222,7 +399,7 @@ void laps_fill_triangle(uint32_t *pixels, size_t width, size_t height,
 
     for (int y = y1; y <= y2; ++y)
     {
-        if (0 <= y && (size_t)y < height)
+        if (0 <= y && (size_t)y < c.height)
         {
             int s1 = dy12 != 0 ? (y - y1) * dx12 / dy12 + x1 : x1;
             int s2 = dy13 != 0 ? (y - y1) * dx13 / dy13 + x1 : x1;
@@ -230,9 +407,9 @@ void laps_fill_triangle(uint32_t *pixels, size_t width, size_t height,
                 LAPS_SWAP(int, s1, s2);
             for (int x = s1; x <= s2; ++x)
             {
-                if (0 <= x && (size_t)x < width)
+                if (0 <= x && (size_t)x < c.width)
                 {
-                    pixels[y * width + x] = color;
+                    c.pixels[y * c.width + x] = laps_mix_color(c.pixels[y * c.width + x], color);
                 }
             }
         }
@@ -243,19 +420,19 @@ void laps_fill_triangle(uint32_t *pixels, size_t width, size_t height,
     int dx31 = x1 - x3;
     int dy31 = y1 - y3;
 
-    for (int y = y2; y <= y3; ++y)
+    for (int y = y2 + 1; y < y3; ++y)
     {
-        if (0 <= y && (size_t)y < height)
+        if (0 < y && (size_t)y < c.height)
         {
             int s1 = dy32 != 0 ? (y - y3) * dx32 / dy32 + x3 : x3;
             int s2 = dy31 != 0 ? (y - y3) * dx31 / dy31 + x3 : x3;
             if (s1 > s2)
                 LAPS_SWAP(int, s1, s2);
-            for (int x = s1; x <= s2; ++x)
+            for (int x = s1; x < s2; ++x)
             {
-                if (0 <= x && (size_t)x < width)
+                if (0 < x && (size_t)x < c.width)
                 {
-                    pixels[y * width + x] = color;
+                    c.pixels[y * c.width + x] = laps_mix_color(c.pixels[y * c.width + x], color);
                 }
             }
         }
