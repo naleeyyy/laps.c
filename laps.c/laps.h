@@ -24,6 +24,10 @@ typedef int Errno;
         b = temp;          \
     } while (0)
 
+#ifndef LAPS_AA_RES
+#define LAPS_AA_RES 10
+#endif
+
 #define LAPS_SIGN(T, x) ((T)((x) > 0) - (T)((x) < 0))
 #define LAPS_ABS(T, x) (LAPS_SIGN(T, x) * (x))
 #define LAPS_PIXEL(c, x, y) (c).pixels[(y) * (c).stride + (x)]
@@ -306,6 +310,40 @@ void laps_circle(Laps_Canvas c,
                     }
                 }
             }
+        }
+    }
+}
+
+void laps_aa_circle(Laps_Canvas c,
+                    uint16_t cx, uint16_t cy, uint16_t r,
+                    uint32_t color)
+{
+    Laps_Normalized_Rect nr = {0};
+    int r1 = r + LAPS_SIGN(int, r);
+    if (!laps_normalize_rect(cx - r1, cy - r1, 2 * r1, 2 * r1, c.width, c.height, &nr))
+        return;
+
+    for (int y = nr.y1; y <= nr.y2; ++y)
+    {
+        for (int x = nr.x1; x <= nr.x2; ++x)
+        {
+            int count = 0;
+            for (int sox = 0; sox < LAPS_AA_RES; ++sox)
+            {
+                for (int soy = 0; soy < LAPS_AA_RES; ++soy)
+                {
+                    // TODO: switch to 64 bits to make the overflow less likely
+                    // Also research the probability of overflow
+                    int res1 = (LAPS_AA_RES + 1);
+                    int dx = (x * res1 * 2 + 2 + sox * 2 - res1 * cx * 2 - res1);
+                    int dy = (y * res1 * 2 + 2 + soy * 2 - res1 * cy * 2 - res1);
+                    if (dx * dx + dy * dy <= res1 * res1 * r * r * 2 * 2)
+                        count += 1;
+                }
+            }
+            uint32_t alpha = ((color & 0xFF000000) >> (3 * 8)) * count / LAPS_AA_RES / LAPS_AA_RES;
+            uint32_t updated_color = (color & 0x00FFFFFF) | (alpha << (3 * 8));
+            laps_blend_color(&LAPS_PIXEL(c, x, y), updated_color);
         }
     }
 }

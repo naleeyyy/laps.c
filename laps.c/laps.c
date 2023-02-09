@@ -20,7 +20,7 @@ int main(void)
     laps_fill(c, BACKGROUND_COLOR);
     laps_rectange(c, 0, 0, WIDTH * 3 / 5, HEIGHT * 3 / 5, 0x5500FF00);
     laps_rectange(c, WIDTH * 2 / 5, HEIGHT * 2 / 5, WIDTH, HEIGHT, 0x55AA00FF);
-    laps_circle(c, WIDTH / 2, HEIGHT / 2, 50, 0x33AA0000);
+    laps_aa_circle(c, WIDTH / 2, HEIGHT / 2, WIDTH / 5, 0x33AA0000);
     laps_save_to_ppm(c, "test.ppm");
 
     return 0;
