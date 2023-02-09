@@ -2,7 +2,6 @@
 #define LAPS_H
 
 #include <stdlib.h>
-#include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdbool.h>
@@ -143,56 +142,6 @@ Laps_Canvas laps_subcanvas(Laps_Canvas c, int x, int y, int w, int h)
     return c;
 }
 
-typedef enum
-{
-    COMP_RED,
-    COMP_GREEN,
-    COMP_BLUE,
-    COMP_ALPHA,
-    COUNT_COMPS,
-} Comp_Index;
-
-void unpack_rgba32(uint32_t c, uint8_t comp[COUNT_COMPS])
-{
-    for (size_t i = 0; i < 4; ++i)
-    {
-        comp[i] = c & 0xFF;
-        c >>= 8;
-    }
-}
-
-uint32_t pack_rgba32(uint8_t comp[COUNT_COMPS])
-{
-    uint32_t result = 0;
-    for (size_t i = 0; i < 4; ++i)
-    {
-        result |= comp[i] << (8 * i);
-    }
-    return result;
-}
-
-uint8_t laps_mix_comps(uint16_t c1, uint16_t c2, uint16_t a)
-{
-    return c1 + (c2 - c1) * a / 255;
-}
-
-uint32_t laps_mix_color(uint32_t c1, uint32_t c2)
-{
-    uint8_t comp1[COUNT_COMPS];
-    unpack_rgba32(c1, comp1);
-
-    uint8_t comp2[COUNT_COMPS];
-    unpack_rgba32(c2, comp2);
-
-    // comp1[COMP_RED] comp2[COMP_RED] comp2[COMP_ALPHA]
-    for (size_t i = 0; i < COMP_ALPHA; ++i)
-    {
-        comp1[i] = laps_mix_comps(comp1[i], comp2[i], comp2[COMP_ALPHA]);
-    }
-
-    return pack_rgba32(comp1);
-}
-
 #define LAPS_RED(color) (((color)&0x000000FF) >> (8 * 0))
 #define LAPS_GREEN(color) (((color)&0x0000FF00) >> (8 * 1))
 #define LAPS_BLUE(color) (((color)&0x00FF0000) >> (8 * 2))
@@ -223,28 +172,6 @@ void laps_blend_color(uint32_t *c1, uint32_t c2)
 
     *c1 = LAPS_RGBA(r1, g1, b1, a1);
 }
-
-void sort_triangle_points_by_y(uint16_t *x1, uint16_t *y1, uint16_t *x2, uint16_t *y2, uint16_t *x3, uint16_t *y3)
-{
-    if (*y1 > *y2)
-    {
-        LAPS_SWAP(uint16_t, *x1, *x2);
-        LAPS_SWAP(uint16_t, *y1, *y2);
-    }
-
-    if (*y2 > *y3)
-    {
-        LAPS_SWAP(uint16_t, *x2, *x3);
-        LAPS_SWAP(uint16_t, *y2, *y3);
-    }
-
-    if (*y1 > *y2)
-    {
-        LAPS_SWAP(uint16_t, *x1, *x2);
-        LAPS_SWAP(uint16_t, *y1, *y2);
-    }
-}
-
 // end utils
 
 // Fills the canvas with one color
@@ -338,10 +265,10 @@ void laps_line(Laps_Canvas c, int x1, int y1, int x2, int y2, uint32_t color)
 }
 
 // Fills rectangle with one color
-void laps_fill_rectange(Laps_Canvas c,
-                        uint16_t x, uint16_t y,
-                        uint16_t w, uint16_t h,
-                        uint32_t color)
+void laps_rectange(Laps_Canvas c,
+                   uint16_t x, uint16_t y,
+                   uint16_t w, uint16_t h,
+                   uint32_t color)
 {
     Laps_Normalized_Rect nr = {0};
     if (!laps_normalize_rect(x, y, w, h, c.width, c.height, &nr))
@@ -356,17 +283,17 @@ void laps_fill_rectange(Laps_Canvas c,
 }
 
 // Fills circle with one color
-void laps_fill_circle(uint32_t *pixels, size_t width, size_t height,
-                      uint16_t cx, uint16_t cy, uint16_t r,
-                      uint32_t color)
+void laps_circle(Laps_Canvas c,
+                 uint16_t cx, uint16_t cy, uint16_t r,
+                 uint32_t color)
 {
     for (uint16_t y = cy - r; y < cy + r; ++y)
     {
-        if (y < height)
+        if (y < c.height)
         {
             for (uint16_t x = cx - r; x < cx + r; ++x)
             {
-                if (x < width)
+                if (x < c.width)
                 {
                     uint16_t dy = LAPS_ABS(uint16_t, cy - y);
                     uint16_t dx = LAPS_ABS(uint16_t, cx - x);
@@ -375,7 +302,7 @@ void laps_fill_circle(uint32_t *pixels, size_t width, size_t height,
 
                     if (r * r >= d)
                     {
-                        pixels[y * width + x] = laps_mix_color(pixels[y * width + x], color);
+                        laps_blend_color(&LAPS_PIXEL(c, x, y), color);
                     }
                 }
             }
@@ -441,11 +368,11 @@ bool laps_normalize_triangle(size_t width, size_t height, int x1, int y1, int x2
 }
 
 // Fills triangle with one color
-void laps_fill_triangle(Laps_Canvas c,
-                        uint16_t x1, uint16_t y1,
-                        uint16_t x2, uint16_t y2,
-                        uint16_t x3, uint16_t y3,
-                        uint32_t color)
+void laps_triangle(Laps_Canvas c,
+                   uint16_t x1, uint16_t y1,
+                   uint16_t x2, uint16_t y2,
+                   uint16_t x3, uint16_t y3,
+                   uint32_t color)
 {
     int lx, hx, ly, hy;
     if (laps_normalize_triangle(c.width, c.height, x1, y1, x2, y2, x3, y3, &lx, &hx, &ly, &hy))
