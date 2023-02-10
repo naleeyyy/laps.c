@@ -3,22 +3,15 @@
 ## Currently available functions: 
     For drawing: 
        - laps_fill()
-       - laps_draw_rectangle()
-       - laps_fill_rectangle()
-       - laps_fill_circle()
-       - laps_draw_line()
-       - laps_draw_triangle()
-       - laps_fill_triangle()
+       - laps_rectangle()
+       - laps_circle()
+       - laps_line()
     Utility:
        - LAPS_SWAP()
-       - laps_sort_triangle_points_by_y()
     Save:
        - laps_save_to_ppm()
 
 ### TODO: 
-    1. laps_draw_rectangle()
-    2. laps_draw_circle()
-    3. Port To WASM
-    4. 3D
+    1. 3D
 
 ### Currently Working On:

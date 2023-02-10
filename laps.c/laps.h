@@ -1,21 +1,11 @@
 #ifndef LAPS_H
 #define LAPS_H
 
-#include <stdlib.h>
+#include <stddef.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <stdbool.h>
 
 // utils
-#define return_defer(val) \
-    do                    \
-    {                     \
-        result = (val);   \
-        goto defer;       \
-    } while (0)
-
-typedef int Errno;
-
 #define LAPS_SWAP(T, a, b) \
     do                     \
     {                      \
@@ -63,28 +53,6 @@ typedef struct
     int ox1, ox2;
     int oy1, oy2;
 } Laps_Normalized_Rect;
-
-int laps_save_to_ppm(Laps_Canvas c, const char *filePath)
-{
-    FILE *fp = fopen(filePath, "wb"); // wb - write binary
-
-    // assert(fp != NULL && "File Could Not Open");
-
-    // assert(fprintf(fp, "P6\n%d %d 255\n", width, height) > 0 && "Could not add file header!");
-    fprintf(fp, "P6\n%d %d 255\n", c.width, c.height);
-
-    for (size_t i = 0; i < c.width * c.height; ++i)
-    {
-        uint32_t pixel = c.pixels[i];
-        uint8_t bytes[3] = {
-            (pixel >> (8 * 0)) & 0xFF,
-            (pixel >> (8 * 1)) & 0xFF,
-            (pixel >> (8 * 2)) & 0xFF};
-        fwrite(bytes, sizeof(bytes), 1, fp);
-    };
-    printf("Saved File!");
-    return 0;
-}
 
 bool laps_normalize_rect(int x, int y, int w, int h,
                          size_t canvas_width, size_t canvas_height,

@@ -1,4 +1,7 @@
 #include "laps.h"
+#include "utils/save_ppm.h"
+
+#define PLATFORM 2
 
 #define WIDTH 800
 #define HEIGHT 600

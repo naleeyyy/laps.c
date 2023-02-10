@@ -1,4 +1,5 @@
-#include "laps.h"
+#include "../laps.h"
+#include "../utils/save_ppm.h"
 
 #define WIDTH 800
 #define HEIGHT 600

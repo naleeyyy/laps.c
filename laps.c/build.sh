@@ -1,2 +1,2 @@
-gcc ./laps.c -o laps -O3 -Wextra -Wall -pedantic
+gcc ./laps.c -o laps -O3 -Wextra -Wall -pedantic 
 ./laps
