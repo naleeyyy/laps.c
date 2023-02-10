@@ -1,2 +1,0 @@
-@echo off
-clang -Wall -Wextra -pedantic -std=c99 -ggdb -I../ -O2 -fno-builtin --target=wasm32 --no-standard-libraries -Wl,--no-entry -Wl,--export=render -Wl,--export=__heap_base -Wl,--allow-undefined -o ./wasm/%1.wasm -DPLATFORM=WASM_PLATFORM ./%1.c

@@ -1,5 +1,5 @@
 #define SCALE_DOWN_FACTOR 20
-#include "laps.h"
+#include "../../laps.h"
 
 #define WIDTH 960
 #define HEIGHT 720
@@ -72,7 +72,7 @@ Laps_Canvas render(float dt)
             circle_y = y;
         }
 
-        laps_circle(c, circle_x, circle_y, CIRCLE_RADIUS, CIRCLE_COLOR);
+        laps_aa_circle(c, circle_x, circle_y, CIRCLE_RADIUS, CIRCLE_COLOR);
     }
 
     return c;

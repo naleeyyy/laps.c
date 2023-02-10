@@ -1,4 +1,3 @@
-// Browser runtime for the Demo Virtual Console
 function make_environment(...envs) {
     return new Proxy(envs, {
         get(target, prop, receiver) {
@@ -20,8 +19,7 @@ const libm = {
 };
 
 let iota = 0;
-// TODO: nothing in this Canvas "declaration" states that iota's measure units are Uint32
-// Which is not useful for all kinds of structures. A more general approach would be to use Uint8 as the measure units.
+
 const CANVAS_PIXELS = iota++;
 const CANVAS_WIDTH  = iota++;
 const CANVAS_HEIGHT = iota++;
@@ -51,7 +49,6 @@ async function startDemo(elementId, wasmPath) {
         "env": make_environment(libm)
     });
 
-    // TODO: if __heap_base not found tell the user to compile their wasm module with -Wl,--export=__heap_base
     const heap_base = w.instance.exports.__heap_base.value;
 
     let prev = null;
@@ -67,7 +64,6 @@ async function startDemo(elementId, wasmPath) {
         w.instance.exports.render(heap_base, dt*0.001);
         const canvas = readCanvasFromMemory(buffer, heap_base);
         if (canvas.width != canvas.stride) {
-            // TODO: maybe we can preallocate a Uint8ClampedArray on JavaScript side and just copy the canvas data there to bring width and stride to the same value?
             console.error(`Canvas width (${canvas.width}) is not equal to its stride (${canvas.stride}). Unfortunately we can't easily support that in a browser because ImageData simply does not accept stride. Welcome to 2022.`);
             return;
         }
