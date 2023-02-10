@@ -1,7 +1,5 @@
 *.ipch
 *.exe
 *.ppm
-*.png
-*.jpg
 
 # if port to linux add gitignore for output file after compile
