@@ -402,4 +402,19 @@ void laps_triangle(Laps_Canvas c,
     }
 }
 
+void laps_hollow_triangle(Laps_Canvas c,
+                          uint16_t x1, uint16_t y1,
+                          uint16_t x2, uint16_t y2,
+                          uint16_t x3, uint16_t y3,
+                          uint32_t color)
+{
+    int lx, hx, ly, hy;
+    if (laps_normalize_triangle(c.width, c.height, x1, y1, x2, y2, x3, y3, &lx, &hx, &ly, &hy))
+    {
+        laps_line(c, x1, y1, x2, y2, color);
+        laps_line(c, x1, y1, x3, y3, color);
+        laps_line(c, x2, y2, x3, y3, color);
+    }
+}
+
 #endif // LAPS_H
