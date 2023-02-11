@@ -182,7 +182,6 @@ void laps_line(Laps_Canvas c, int x1, int y1, int x2, int y2, uint32_t color)
             LAPS_SWAP(int, y1, y2);
         }
 
-        // Cull out invisible line
         if (x1 > (int)c.width)
             return;
         if (x2 < 0)
@@ -212,7 +211,6 @@ void laps_line(Laps_Canvas c, int x1, int y1, int x2, int y2, uint32_t color)
             LAPS_SWAP(int, y1, y2);
         }
 
-        // Cull out invisible line
         if (y1 > (int)c.height)
             return;
         if (y2 < 0)
@@ -300,8 +298,6 @@ void laps_aa_circle(Laps_Canvas c,
             {
                 for (int soy = 0; soy < LAPS_AA_RES; ++soy)
                 {
-                    // TODO: switch to 64 bits to make the overflow less likely
-                    // Also research the probability of overflow
                     int res1 = (LAPS_AA_RES + 1);
                     int dx = (x * res1 * 2 + 2 + sox * 2 - res1 * cx * 2 - res1);
                     int dy = (y * res1 * 2 + 2 + soy * 2 - res1 * cy * 2 - res1);

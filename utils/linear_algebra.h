@@ -3,18 +3,12 @@
 
 #include "../laps.h"
 
-typedef struct
-{
-    float x, y;
-} vec2d;
-
-vec2d make_vec2d(float x, float y)
-{
-    vec2d v2;
-    v2.x = x;
-    v2.y = y;
-    return v2;
-}
+#ifndef PLATFORM_WASM
+#include <malloc.h>
+#else
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wimplicit-function-declaration"
+#endif
 
 typedef struct
 {
@@ -46,28 +40,33 @@ triangle3d make_triangle3d(vec3d v1, vec3d v2, vec3d v3)
 
 typedef struct
 {
-    triangle3d tris[12];
-} cubeMesh3d;
+    triangle3d *tris;
+    size_t used;
+    size_t size;
+} mesh3d;
 
-cubeMesh3d make_cubeMesh3d(triangle3d t1, triangle3d t2, triangle3d t3,
-                           triangle3d t4, triangle3d t5, triangle3d t6,
-                           triangle3d t7, triangle3d t8, triangle3d t9,
-                           triangle3d t10, triangle3d t11, triangle3d t12)
+void init_mesh3d(mesh3d *mesh, size_t initial_size)
 {
-    cubeMesh3d c;
-    c.tris[0] = t1;
-    c.tris[1] = t2;
-    c.tris[2] = t3;
-    c.tris[3] = t4;
-    c.tris[4] = t5;
-    c.tris[5] = t6;
-    c.tris[6] = t7;
-    c.tris[7] = t8;
-    c.tris[8] = t9;
-    c.tris[9] = t10;
-    c.tris[10] = t11;
-    c.tris[11] = t12;
-    return c;
+    mesh->tris = (triangle3d *)malloc(initial_size * sizeof(triangle3d));
+    mesh->used = 0;
+    mesh->size = initial_size;
+}
+
+void insert_mesh3d(mesh3d *mesh, triangle3d tri)
+{
+    if (mesh->used == mesh->size)
+    {
+        mesh->size *= 2;
+        mesh->tris = (triangle3d *)realloc(mesh->tris, mesh->size * sizeof(triangle3d));
+    }
+    mesh->tris[mesh->used++] = tri;
+}
+
+void free_mesh3d(mesh3d *mesh)
+{
+    free(mesh->tris);
+    mesh->tris = NULL;
+    mesh->used = mesh->size = 0;
 }
 
 typedef struct
@@ -90,10 +89,11 @@ mat4x4 init_mat4x4(void)
 
 void MultiplyMatrixVector(vec3d *i, vec3d *o, mat4x4 *m)
 {
+    float w;
     o->x = i->x * m->m[0][0] + i->y * m->m[1][0] + i->z * m->m[2][0] + m->m[3][0];
     o->y = i->x * m->m[0][1] + i->y * m->m[1][1] + i->z * m->m[2][1] + m->m[3][1];
     o->z = i->x * m->m[0][2] + i->y * m->m[1][2] + i->z * m->m[2][2] + m->m[3][2];
-    float w = i->x * m->m[0][3] + i->y * m->m[1][3] + i->z * m->m[2][3] + m->m[3][3];
+    w = i->x * m->m[0][3] + i->y * m->m[1][3] + i->z * m->m[2][3] + m->m[3][3];
 
     if (w != 0.0f)
     {
@@ -101,6 +101,13 @@ void MultiplyMatrixVector(vec3d *i, vec3d *o, mat4x4 *m)
         o->y /= w;
         o->z /= w;
     }
+}
+
+void MultiplyMatrixTriangle(triangle3d *i, triangle3d *o, mat4x4 *m)
+{
+    MultiplyMatrixVector(&i->p[0], &o->p[0], m);
+    MultiplyMatrixVector(&i->p[1], &o->p[1], m);
+    MultiplyMatrixVector(&i->p[2], &o->p[2], m);
 }
 
 #endif // LINEAR_ALGEBRA_H
