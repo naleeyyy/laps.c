@@ -38,6 +38,36 @@ triangle3d make_triangle3d(vec3d v1, vec3d v2, vec3d v3)
     return t;
 }
 
+void translate_triangle3d(triangle3d *i, triangle3d *o, float x, float y, float z)
+{
+    o->p[0].x = i->p[0].x + x;
+    o->p[0].y = i->p[0].y + y;
+    o->p[0].z = i->p[0].z + z;
+    o->p[1].x = i->p[1].x + x;
+    o->p[1].y = i->p[1].y + y;
+    o->p[1].z = i->p[1].z + z;
+    o->p[2].x = i->p[2].x + x;
+    o->p[2].y = i->p[2].y + y;
+    o->p[2].z = i->p[2].z + z;
+}
+
+void scale_triangle3d(triangle3d *t, float width, float height)
+{
+    t->p[0].x += 1.0f;
+    t->p[0].y += 1.0f;
+    t->p[1].x += 1.0f;
+    t->p[1].y += 1.0f;
+    t->p[2].x += 1.0f;
+    t->p[2].y += 1.0f;
+
+    t->p[0].x *= 0.5F * width;
+    t->p[0].y *= 0.5F * height;
+    t->p[1].x *= 0.5F * width;
+    t->p[1].y *= 0.5F * height;
+    t->p[2].x *= 0.5F * width;
+    t->p[2].y *= 0.5F * height;
+}
+
 typedef struct
 {
     triangle3d *tris;

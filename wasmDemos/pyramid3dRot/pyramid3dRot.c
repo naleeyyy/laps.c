@@ -30,7 +30,7 @@ Laps_Canvas render(float dt)
     float fAspectRatio = ((float)HEIGHT / (float)WIDTH);
     float fFovRad = 1.0f / tanf(fFov * 0.5f / 180.0f * PI);
 
-    mesh3d mesh = make_cubeMesh3d(make_vec3d(0, 0, 0), 1);
+    mesh3d mesh = make_pyramidMesh3d(make_vec3d(0, 0, 0), 1);
 
     mat4x4 matRotZ = init_mat4x4();
     mat4x4 matRotX = init_mat4x4();
@@ -86,6 +86,10 @@ Laps_Canvas render(float dt)
                              (uint16_t)triProjected.p[1].x, (uint16_t)triProjected.p[1].y,
                              (uint16_t)triProjected.p[2].x, (uint16_t)triProjected.p[2].y,
                              0xFFFFFFFF);
+        laps_triangle(c, (uint16_t)triProjected.p[0].x, (uint16_t)triProjected.p[0].y,
+                      (uint16_t)triProjected.p[1].x, (uint16_t)triProjected.p[1].y,
+                      (uint16_t)triProjected.p[2].x, (uint16_t)triProjected.p[2].y,
+                      0x33FFFFFF);
     }
     free_mesh3d(&mesh);
     return c;

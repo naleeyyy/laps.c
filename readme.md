@@ -12,6 +12,6 @@
        - laps_save_to_ppm()
 
 ### TODO: 
-    1. 3D
+    1. Implement malloc() and free() in wasm somehow
 
 ### Currently Working On:
