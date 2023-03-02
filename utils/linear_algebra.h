@@ -51,6 +51,15 @@ void translate_triangle3d(triangle3d *i, triangle3d *o, float x, float y, float 
     o->p[2].z = i->p[2].z + z;
 }
 
+void scale_vec3d(vec3d *v, float width, float height)
+{
+    v->x *= 1.0f;
+    v->y *= 1.0f;
+
+    v->x *= 0.5f * width;
+    v->y *= 0.5f * height;
+}
+
 void scale_triangle3d(triangle3d *t, float width, float height)
 {
     t->p[0].x += 1.0f;
